@@ -15,7 +15,17 @@ class tcpwrappers (
   Boolean         $default_deny    = true,
   Boolean         $allow_all_local = true
 ){
-  package { 'tcp_wrappers': ensure => 'latest' }
+  if $facts['os']['name'] in ['RedHat','CentOS'] {
+    $_package = 'tcp_wrappers'
+  }
+  elsif $facts['os']['name'] in ['Debian','Ubuntu'] {
+    $_package = 'tcpd'
+  }
+  else {
+    fail("OS '${facts['os']['name']}' not supported by '${module_name}'")
+  }
+
+  package { $_package: ensure => 'latest' }
 
   concat { '/etc/hosts.allow':
     owner          => 'root',
@@ -23,7 +33,7 @@ class tcpwrappers (
     mode           => '0444',
     ensure_newline => true,
     warn           => true,
-    require        => Package['tcp_wrappers']
+    require        => Package[$_package]
   }
 
   if $default_deny {
@@ -32,7 +42,7 @@ class tcpwrappers (
       group   => 'root',
       mode    => '0644',
       content => "ALL: ALL\n",
-      require => Package['tcp_wrappers']
+      require => Package[$_package]
     }
   }
 
